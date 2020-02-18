@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -38,6 +39,7 @@ func (api *API) getUserHandler() service.Handler {
 		var u *sdk.AuthentifiedUser
 		var err error
 		if username == "me" {
+      return sdk.WithStack(fmt.Errorf("testing"))
 			u, err = user.LoadByID(ctx, api.mustDB(), consumer.AuthentifiedUserID)
 		} else {
 			u, err = user.LoadByUsername(ctx, api.mustDB(), username)

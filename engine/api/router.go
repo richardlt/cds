@@ -335,11 +335,22 @@ func (r *Router) Handle(uri string, scope HandlerScope, handlers ...*service.Han
 
 			end := time.Now()
 			latency := end.Sub(start)
-			if rc.IsDeprecated {
+			/*if rc.IsDeprecated {
 				log.Error(ctx, "[%-3d] | %-7s | %13v | DEPRECATED ROUTE | %v [%s]", responseWriter.statusCode, req.Method, latency, req.URL, rc.Name)
 			} else {
-				log.Info(ctx, "[%-3d] | %-7s | %13v | %v [%s]", responseWriter.statusCode, req.Method, latency, req.URL, rc.Name)
-			}
+			}*/
+
+			/*entry := logrus.WithField("method", req.Method).
+				WithField("latency", latency).
+				WithField("status", responseWriter.statusCode).
+				WithField("request_uri", r.RequestURI).
+				WithField("status", httpErr.Status).
+				WithField("error_uuid", httpErr.UUID)
+			if isErrWithStack {
+				entry = entry.WithField("stack_trace", fmt.Sprintf("%+v", err))
+			}*/
+
+			log.Info(ctx, "[%-3d] | %-7s | %13v | %v [%s]", responseWriter.statusCode, req.Method, latency, req.URL, rc.Name)
 
 			observability.RecordFloat64(ctx, ServerLatency, float64(latency)/float64(time.Millisecond))
 			observability.Record(ctx, ServerRequestBytes, responseWriter.reqSize)

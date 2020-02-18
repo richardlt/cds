@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	loghook "github.com/ovh/cds/sdk/log/hook"
-	log "github.com/sirupsen/logrus"
+	"github.com/prometheus/common/log"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Conf contains log configuration
@@ -29,8 +31,8 @@ type Conf struct {
 }
 
 var (
-	logger Logger
-	hook   *loghook.Hook
+	customLogger Logger
+	hook         *loghook.Hook
 )
 
 // Logger defines the logs levels used
@@ -40,26 +42,26 @@ type Logger interface {
 	Fatalf(fmt string, values ...interface{})
 }
 
-// SetLogger override private logger reference
+// SetLogger replace logrus logger with custom one.
 func SetLogger(l Logger) {
-	logger = l
+	customLogger = l
 }
 
 // Initialize init log level
 func Initialize(conf *Conf) {
 	switch conf.Level {
 	case "debug":
-		log.SetLevel(log.DebugLevel)
+		logrus.SetLevel(logrus.DebugLevel)
 	case "info":
-		log.SetLevel(log.InfoLevel)
+		logrus.SetLevel(logrus.InfoLevel)
 	case "error":
-		log.SetLevel(log.ErrorLevel)
+		logrus.SetLevel(logrus.ErrorLevel)
 	case "warning":
-		log.SetLevel(log.WarnLevel)
+		logrus.SetLevel(logrus.WarnLevel)
 	default:
-		log.SetLevel(log.InfoLevel)
+		logrus.SetLevel(logrus.InfoLevel)
 	}
-	log.SetFormatter(&CDSFormatter{})
+	logrus.SetFormatter(&CDSFormatter{})
 
 	if conf.GraylogHost != "" && conf.GraylogPort != "" {
 		graylogcfg := &loghook.Config{
@@ -105,19 +107,20 @@ func Initialize(conf *Conf) {
 		hook, errhook = loghook.NewHook(graylogcfg, extra)
 
 		if errhook != nil {
-			log.Errorf("Error while initialize graylog hook: %v", errhook)
+			logrus.Errorf("Error while initialize graylog hook: %v", errhook)
 		} else {
-			log.AddHook(hook)
-			log.SetOutput(ioutil.Discard)
+			logrus.AddHook(hook)
+			logrus.SetOutput(ioutil.Discard)
 		}
 	}
 
 	if conf.Ctx == nil {
 		conf.Ctx = context.Background()
 	}
+
 	go func() {
 		<-conf.Ctx.Done()
-		log.Info(conf.Ctx, "Draining logs")
+		logrus.Info(conf.Ctx, "Draining logs")
 		if hook != nil {
 			hook.Flush()
 		}
@@ -127,77 +130,54 @@ func Initialize(conf *Conf) {
 // Debug prints debug log
 func Debug(format string, values ...interface{}) {
 	if logger != nil {
-		logger.Logf("[DEBUG]    "+format, values...)
-	} else {
-		if len(values) == 0 {
-			log.Debug(format)
-		} else {
-			log.Debugf(format, values...)
-		}
-	}
+    logger.Logf("[DEBUG] "+format, values...)
+    return
+  }
+			logrus.Debugf(format, values...)
 }
 
 // Info prints information log
 func Info(ctx context.Context, format string, values ...interface{}) {
 	if logger != nil {
-		logger.Logf("[INFO]    "+format, values...)
-	} else {
-		if len(values) == 0 {
-			log.Info(ctx, format)
-		} else {
-			log.Infof(format, values...)
-		}
-	}
+		logger.Logf("[INFO] "+format, values...)
+		return
+  }
+  logrus.WithFields(fields Fields).
+	logrus.Infof(format, values...)
 }
 
 // InfoWithoutCtx prints information log
 func InfoWithoutCtx(format string, values ...interface{}) {
 	if logger != nil {
-		logger.Logf("[INFO]    "+format, values...)
-	} else {
-		if len(values) == 0 {
-			log.Info(context.Background(), format)
-		} else {
-			log.Infof(format, values...)
-		}
+		logger.Logf("[INFO] "+format, values...)
+		return
 	}
+	logrus.Infof(format, values...)
 }
 
 // Warning prints warnings for user
 func Warning(ctx context.Context, format string, values ...interface{}) {
 	if logger != nil {
-		logger.Logf("[WARN]    "+format, values...)
-	} else {
-		if len(values) == 0 {
-			log.Warn(format)
-		} else {
-			log.Warnf(format, values...)
-		}
+    logger.Logf("[WARN] "+format, values...)
+    return
 	}
+			logrus.Warnf(format, values...)
 }
 
 // Error prints error informations
 func Error(ctx context.Context, format string, values ...interface{}) {
 	if logger != nil {
-		logger.Logf("[ERROR]    "+format, values...)
-	} else {
-		if len(values) == 0 {
-			log.Errorf(format)
-		} else {
-			log.Errorf(format, values...)
-		}
-	}
+		logger.Logf("[ERROR] "+format, values...)
+return
+  }
+			logrus.Errorf(format, values...)
 }
 
 // Fatalf prints fatal informations, then os.Exit(1)
 func Fatalf(format string, values ...interface{}) {
 	if logger != nil {
-		logger.Logf("[FATAL]    "+format, values...)
-	} else {
-		if len(values) == 0 {
-			log.Fatalf(format)
-		} else {
-			log.Fatalf(format, values...)
-		}
+		logger.Logf("[FATAL] "+format, values...)
+		return
 	}
+	logrus.Fatalf(format, values...)
 }
